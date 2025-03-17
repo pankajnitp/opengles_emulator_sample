@@ -4,7 +4,7 @@
  */
 
 #include "window.h"
-
+#include "utility.h"
 extern int runTransition;
 /* 
  * create_window(): Set up Windows specific bits.
@@ -68,6 +68,15 @@ LRESULT CALLBACK process_window(HWND hWnd, UINT uiMsg, WPARAM wParam, LPARAM lPa
 				InvalidateRect(hWnd, NULL, FALSE);
 			}
 		case WM_KEYUP:
+			break;
+		case WM_LBUTTONDOWN:
+		{
+			int x = LOWORD(lParam);
+			int y = HIWORD(lParam);
+			printf("Mouse clicked at (%d, %d)\n", x, y);
+			SceneMouseClickedAt(x, y);
+			break;
+		}
 		case WM_SIZE:
 				return 0;
 	}

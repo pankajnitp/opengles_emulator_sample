@@ -23,6 +23,7 @@
     <ClCompile Include="matrix.c" />
     <ClCompile Include="shader.c" />
     <ClCompile Include="stb.cpp" />
+    <ClCompile Include="utility.c" />
     <ClCompile Include="window.c" />
   </ItemGroup>
   <ItemGroup>
@@ -30,6 +31,7 @@
     <ClInclude Include="matrix.h" />
     <ClInclude Include="shader.h" />
     <ClInclude Include="stb_image.h" />
+    <ClInclude Include="utility.h" />
     <ClInclude Include="window.h" />
   </ItemGroup>
   <ItemGroup>

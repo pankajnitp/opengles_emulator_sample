@@ -9,22 +9,56 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h" 
 
+#define MODEL_SIZE 0.9
+
 HWND hWindow;
 HDC  hDisplay;
 int runTransition = 0;
+EGLDisplay	sEGLDisplay;
+EGLContext	sEGLContext;
+EGLSurface	sEGLSurface;
+
+EGLConfig	aEGLConfigs[1];
+EGLint		cEGLConfigs;
+
+MSG sMessage;
+
+GLint iLocPosition = 0;
+GLint iLocTex, iLocMVP;
+GLuint uiProgram, uiFragShader, uiVertShader;
+int bDone = 0;
+static int nCount = 0;
+const unsigned int uiWidth = 1920;
+const unsigned int uiHeight = 1080;
+float curve_fac = 0.0;
+
+int iXangle = 0, iYangle = 0, iZangle = 0;
+
+float aLightPos[] = { 0.0f, 0.0f, -1.0f }; // Light is nearest camera.
+
+float aRotate[16], aModelView[16], aPerspective[16], aMVP[16];
+struct pos_value
+{
+  float x, y;
+  int effect_on;
+}translation_value[4] = { {-1.0, 1.0, 0}, {1.0, 1.0, 0}, {-1.0, -1.0, 0}, {1.0, -1.0, 0} };
+
+const char* image_path[4] = { "1.jpg", "2.jpg", "3.jpg", "4.jpg" };
+GLuint texture[4];
+
 /* 3D data. Vertex range -0.5..0.5 in all axes.
 * Z -0.5 is near, 0.5 is far. */
-const float aVertices[] =
+float aVertices[18] =
 {
     /* Front face. */
     /* Bottom left */
-    -1.0,  -1.0, 0.0,
-    1.0, 1.0, 0.0,
-    -1.0, 1.0, 0.0,
+    -MODEL_SIZE,  -MODEL_SIZE, 0.0,
+    MODEL_SIZE, MODEL_SIZE, 0.0,
+    -MODEL_SIZE, MODEL_SIZE, 0.0,
     /* Top right */
-    -1.0,  -1.0, 0.0,
-    1.0,  -1.0, 0.0,
-    1.0, 1.0, 0.0,
+    -MODEL_SIZE,  -MODEL_SIZE, 0.0,
+    MODEL_SIZE,  -MODEL_SIZE, 0.0,
+    MODEL_SIZE, MODEL_SIZE, 0.0,
 };
 
 const float aCoords[] =
@@ -38,38 +72,74 @@ const float aCoords[] =
     1.0, 0.0,
 };
 
-
 GLuint loadTexture(const char* imagePath) {
   int width, height, nrChannels;
-  unsigned char* data = stbi_load(imagePath, &width, &height, &nrChannels, 4);
+  glGenTextures(4, &texture);
 
-  if (!data) {
-    printf("Failed to load image: %s\n", imagePath);
-    return 0;
+  for (int i = 0; i < 4; i++)
+  {
+    unsigned char* data = stbi_load(image_path[i], &width, &height, &nrChannels, 4);
+
+    if (!data) {
+      printf("Failed to load image: %s\n", image_path[i]);
+      return 0;
+    }
+
+    glBindTexture(GL_TEXTURE_2D, texture[i]);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+    stbi_image_free(data);
   }
+  glBindTexture(GL_TEXTURE_2D, 0);
+  return texture[0];
+}
 
-  GLuint texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
-  glGenerateMipmap(GL_TEXTURE_2D);
-
-  // Texture parameters
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-  stbi_image_free(data);
-  return texture;
+void RenderScene()
+{
+  /*
+  if (runTransition)
+  {
+    nCount++;
+    float scale_fac = (nCount * 0.025);
+    float trans_fac = nCount * 0.0833;
+    curve_fac += 0.01;
+    if (scale_fac > 0.75) scale_fac = 0.75;
+    if (trans_fac > 2.5) trans_fac = 2.5;
+    if (curve_fac > 0.25) curve_fac = 0.25;
+    scale_matrix(0.25 + scale_fac, 0.25 + scale_fac, 1.0, aRotate);
+    translate_matrix(2.5 - trans_fac, -2.5 + trans_fac, 0.0, aModelView);
+    multiply_matrix(aRotate, aModelView, aMVP);
+    GL_CHECK(glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, aMVP));
+  }
+  else
+  {
+    nCount = 0;
+    scale_matrix(0.25, 0.25, 1.0, aRotate);
+    translate_matrix(2.5, -2.5, 0.0, aModelView);
+    multiply_matrix(aRotate, aModelView, aMVP);
+    GL_CHECK(glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, aMVP));
+  }
+  */
+  for (int i = 0; i < 4; i++)
+  {
+    scale_matrix(0.5, 0.5, 1.0, aRotate);
+    translate_matrix(translation_value[i].x, translation_value[i].y, 0.0, aModelView);
+    multiply_matrix(aRotate, aModelView, aMVP);
+    GL_CHECK(glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, aMVP));
+    glBindTexture(GL_TEXTURE_2D, texture[i]);
+    GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+  }
 }
 
 int main(int argc, char **argv) {
-    EGLDisplay	sEGLDisplay;
-    EGLContext	sEGLContext;
-    EGLSurface	sEGLSurface;
-
     /* EGL Configuration */
 
     EGLint aEGLAttributes[] = {
@@ -85,29 +155,6 @@ int main(int argc, char **argv) {
         EGL_CONTEXT_CLIENT_VERSION, 2,
         EGL_NONE
     };
-
-    EGLConfig	aEGLConfigs[1];
-    EGLint		cEGLConfigs;
-
-    MSG sMessage;
-
-    GLint iLocPosition = 0;
-    GLint iLocTex, iLocMVP;
-    GLuint uiProgram, uiFragShader, uiVertShader;
-    int bDone = 0;
-    static int nCount = 0;
-    const unsigned int uiWidth  = 1920;
-    const unsigned int uiHeight = 1080;
-    float curve_fac = 0.0;
-
-    int iXangle = 0, iYangle = 0, iZangle = 0;
-
-    float aLightPos[] = { 0.0f, 0.0f, -1.0f }; // Light is nearest camera.
-
-    unsigned char *myPixels = calloc(1, 128*128*4); // Holds texture data.
-    unsigned char *myPixels2 = calloc(1, 128*128*4); // Holds texture data.
-
-    float aRotate[16], aModelView[16], aPerspective[16], aMVP[16];
 
     hDisplay = EGL_DEFAULT_DISPLAY;
 
@@ -171,7 +218,7 @@ int main(int argc, char **argv) {
 
     GL_CHECK(glUseProgram(uiProgram));
 
-    loadTexture("image.jpg");
+    loadTexture("1.jpg");
     /* Enable attributes for position, colour and texture coordinates etc. */
     GL_CHECK(glEnableVertexAttribArray(iLocPosition));
     GL_CHECK(glEnableVertexAttribArray(iLocTex));
@@ -195,33 +242,8 @@ int main(int argc, char **argv) {
                 DispatchMessage(&sMessage);
             }
         }
-
-        if (runTransition)
-        {
-          nCount++;
-          float scale_fac = (nCount * 0.025);
-          float trans_fac = nCount * 0.0833;
-          curve_fac += 0.01;
-          if (scale_fac > 0.75) scale_fac = 0.75;
-          if (trans_fac > 2.5) trans_fac = 2.5;
-          if (curve_fac > 0.25) curve_fac = 0.25;
-          scale_matrix(0.25 + scale_fac, 0.25 + scale_fac, 1.0, aRotate);
-          translate_matrix(2.5 - trans_fac, -2.5 + trans_fac, 0.0, aModelView);
-          multiply_matrix(aRotate, aModelView, aMVP);
-          GL_CHECK(glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, aMVP));
-        }
-        else
-        {
-          nCount = 0;
-          scale_matrix(0.25, 0.25, 1.0, aRotate);
-          translate_matrix(2.5, -2.5, 0.0, aModelView);
-          multiply_matrix(aRotate, aModelView, aMVP);
-          GL_CHECK(glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, aMVP));
-        }
-
-
         GL_CHECK(glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT));
-        GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
+        RenderScene();
 
         if (!eglSwapBuffers(sEGLDisplay, sEGLSurface)) {
             printf("Failed to swap buffers.\n");
@@ -243,4 +265,10 @@ int main(int argc, char **argv) {
     EGL_CHECK(eglTerminate(sEGLDisplay));
 
     return 0;
+}
+
+void ApplyEffect(int on, int obj)
+{
+  printf("Effect %d on object %d\n", on, obj);
+  translation_value[obj].effect_on = on;
 }

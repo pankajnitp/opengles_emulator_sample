@@ -30,6 +30,9 @@
     <ClCompile Include="stb.cpp">
       <Filter>Source</Filter>
     </ClCompile>
+    <ClCompile Include="utility.c">
+      <Filter>Source</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="scene.h">
@@ -45,6 +48,9 @@
       <Filter>Include</Filter>
     </ClInclude>
     <ClInclude Include="stb_image.h">
+      <Filter>Include</Filter>
+    </ClInclude>
+    <ClInclude Include="utility.h">
       <Filter>Include</Filter>
     </ClInclude>
   </ItemGroup>

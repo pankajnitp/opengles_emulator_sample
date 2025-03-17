@@ -12,6 +12,8 @@ typedef struct {
 	float x, y, z;
 } vec3;
 
+void ApplyEffect(int on, int obj);
+
 #define GL_CHECK(x) \
         x; \
         { \
