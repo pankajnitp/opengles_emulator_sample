@@ -8,7 +8,7 @@
  * by a licensing agreement from ARM Limited.
  */
 
-attribute vec4 av4position;
+attribute vec3 av4position;
 attribute vec2 a_texCoord;
 
 uniform mat4 mvp;
@@ -18,7 +18,8 @@ varying vec2 v_texCoord;
 
 void main() {
 	//vv3colour = av3colour;
-	gl_Position = mvp * av4position;//
+	//gl_Position = mvp * av4position;//
+	gl_Position = vec4(av4position, 1.0);
 	v_texCoord = a_texCoord;
 }
 

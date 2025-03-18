@@ -60,6 +60,12 @@ void process_shader(GLuint *pShader, char *sFilename, GLint iShaderType) {
 	GL_CHECK(glCompileShader(*pShader));
 	GL_CHECK(glGetShaderiv(*pShader, GL_COMPILE_STATUS, &iStatus));
 
+  if (!iStatus)
+  {
+    char log[512];
+    glGetShaderInfoLog(*pShader, 512, NULL, log);
+    printf("Shader Compilation Failed: %s\n", log);
+  }
 	// Dump debug info (source and log) if compilation failed.
 	if(iStatus != GL_TRUE) {
 		exit(-1);

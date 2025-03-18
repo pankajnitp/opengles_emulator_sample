@@ -9,7 +9,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h" 
 
-#define MODEL_SIZE 0.9
+#define MODEL_SIZE 0.8
 
 HWND hWindow;
 HDC  hDisplay;
@@ -128,7 +128,7 @@ void RenderScene()
     GL_CHECK(glUniformMatrix4fv(iLocMVP, 1, GL_FALSE, aMVP));
   }
   */
-  for (int i = 0; i < 4; i++)
+  for (int i = 0; i < 1; i++)
   {
     scale_matrix(0.5, 0.5, 1.0, aRotate);
     translate_matrix(translation_value[i].x, translation_value[i].y, 0.0, aModelView);
@@ -138,6 +138,7 @@ void RenderScene()
     GL_CHECK(glDrawArrays(GL_TRIANGLES, 0, 6));
   }
 }
+
 
 int main(int argc, char **argv) {
     /* EGL Configuration */
@@ -223,9 +224,18 @@ int main(int argc, char **argv) {
     GL_CHECK(glEnableVertexAttribArray(iLocPosition));
     GL_CHECK(glEnableVertexAttribArray(iLocTex));
 
-    /* Populate attributes for position, colour and texture coordinates etc. */
-    GL_CHECK(glVertexAttribPointer(iLocPosition, 3, GL_FLOAT, GL_FALSE, 0, aVertices));
-    GL_CHECK(glVertexAttribPointer(iLocTex, 2, GL_FLOAT, GL_FALSE, 0, aCoords));
+    GLuint VBO[2];
+    glGenBuffers(2, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(aVertices), aVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(iLocPosition);
+    GL_CHECK(glVertexAttribPointer(iLocPosition, 3, GL_FLOAT, GL_FALSE, 0, 0));
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO[1]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(aCoords), aCoords, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(iLocTex);
+    GL_CHECK(glVertexAttribPointer(iLocTex, 2, GL_FLOAT, GL_FALSE, 0, 0));
 
     //LoadTexture();
 
